@@ -16,23 +16,34 @@ func impossibleApplies(j *datasource.Job) bool {
 	return j.State == "PENDING" || j.State == "PD"
 }
 
-// runImpossibleCheck only investigates the "Resources" pending reason.
-// Slurm deliberately leaves that code ambiguous -- it covers both "not
-// enough free capacity right now" and "this request can never be granted
-// on this partition/QOS" -- so it's the one case where comparing the
-// request against published ceilings actually resolves something.
+// impossibleReasonCodes are the pending-reason codes worth a limit
+// comparison. Confirmed against a live Slurm cluster (21.08):
+// "PartitionNodeLimit", "MaxMemPerLimit", and "PartitionTimeLimit" are
+// what Slurm actually reports when a single job's request exceeds a
+// partition's per-job ceiling -- specific and self-explanatory on their
+// own, but worth enriching with the actual numbers. "Resources" is the
+// one genuinely ambiguous code -- it covers both "not enough free
+// capacity right now" and "this can never be granted here" -- so it's
+// investigated the same way.
 //
 // The other reason codes that might look impossibility-adjacent
 // (QOSMaxJobsPerUserLimit, AssocMaxJobsLimit, ReqNodeNotAvail) are
 // concurrency throttles or node-health issues, not resource ceilings --
 // Slurm already names the exact cause, and pendingCheck's generic table
 // explains them correctly. There's nothing for a limit comparison to add.
+var impossibleReasonCodes = map[string]bool{
+	"Resources":          true,
+	"PartitionNodeLimit": true,
+	"MaxMemPerLimit":     true,
+	"PartitionTimeLimit": true,
+}
+
 func runImpossibleCheck(ctx context.Context, ds datasource.JobDataSource, job *datasource.Job) (*format.Diagnosis, error) {
 	reason, err := ds.GetPendingReason(ctx, job.ID)
 	if err != nil {
 		return nil, err
 	}
-	if reason.Code != "Resources" {
+	if !impossibleReasonCodes[reason.Code] {
 		return nil, nil
 	}
 
