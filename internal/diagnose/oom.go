@@ -12,8 +12,26 @@ func init() {
 	Registry = append(Registry, Check{ID: "oom", Applies: oomApplies, Run: runOOMCheck})
 }
 
+// A memory-limit kill delivers SIGKILL to the job's processes, but how
+// that shows up in sacct's ExitCode ("return_code:signal") depends on how
+// the batch script runs the killed process:
+//   - ExitSignal == 9: the killed process *is* the job step (e.g. the
+//     script uses `exec` to replace itself), so sacct reports the signal
+//     directly.
+//   - ExitCode == 137 (128+9): the far more common case -- the killed
+//     process is a child of the bash-wrapped batch script. bash itself
+//     isn't killed, it just exits normally with the propagated 128+signal
+//     status, which sacct records as the *return code*, not the signal.
+//   - ExitSignal == 125: Slurm's own internal OOM marker. Slurm uses a
+//     dummy signal value of 253 (SIG_OOM) when its own cgroup/jobacct_gather
+//     OOM detection fires; sacct reports that as signal 253-128=125 (the
+//     0x80 bit signals "killed by signal"). This is the "textbook" case,
+//     but far less common in practice than the two above -- confirmed by
+//     testing against a live cluster, where a real cgroup memory-limit
+//     kill showed up as ExitCode=137 (bash-wrapped) or ExitSignal=9
+//     (exec'd directly), not this marker.
 func oomApplies(j *datasource.Job) bool {
-	return j.State == "OUT_OF_MEMORY" || j.ExitSignal == 9
+	return j.State == "OUT_OF_MEMORY" || j.ExitSignal == 9 || j.ExitCode == 137 || j.ExitSignal == 125
 }
 
 func runOOMCheck(ctx context.Context, ds datasource.JobDataSource, job *datasource.Job) (*format.Diagnosis, error) {
