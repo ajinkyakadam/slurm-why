@@ -40,7 +40,7 @@ func runDiagnose(cmd *cobra.Command, args []string) error {
 
 	ds := resolve.Resolve(ctx)
 	if verbose {
-		fmt.Fprintf(cmd.ErrOrStderr(), "using %s backend\n", ds.Backend())
+		_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "using %s backend\n", ds.Backend())
 	}
 
 	job, err := ds.GetJob(ctx, jobID)
@@ -53,7 +53,7 @@ func runDiagnose(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("diagnosing job %s: %w", jobID, err)
 	}
 
-	fmt.Fprint(cmd.OutOrStdout(), format.Render(d))
+	_, _ = fmt.Fprint(cmd.OutOrStdout(), format.Render(d))
 	return nil
 }
 
