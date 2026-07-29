@@ -8,3 +8,12 @@ services:
     # history), which matters more for reproducible test cases than fast
     # restarts. Re-initializing MariaDB takes only a few seconds.
     tty: true
+    # Slurm 26.05's slurmd initializes a cgroup context unconditionally
+    # (even with TaskPlugin=task/affinity), and real cgroup v2 delegation
+    # needs a privileged container plus the host cgroup filesystem mounted
+    # in. This is also what real OOM-kill enforcement needs, so solving it
+    # here covers both.
+    privileged: true
+    cgroup: host
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw

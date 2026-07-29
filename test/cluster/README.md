@@ -2,7 +2,9 @@
 
 A minimal single-node Slurm cluster for manually validating slurm-why's diagnoses against real `slurmctld`/`slurmdbd`/`sacct`/`squeue`/`scontrol` behavior — unit tests use fixtures and never touch real Slurm, so this is the only way to confirm slurm-why's assumptions actually hold against a live cluster.
 
-**Provenance**: built from the official `ubuntu` Docker image, pinned to a specific content digest (not a floating tag), with Slurm installed via Ubuntu's own signed `slurm-wlm` apt package — no third-party Docker images, no compiling Slurm from source.
+**Provenance**: built from the official `ubuntu` Docker image, pinned to a specific content digest (not a floating tag). Slurm itself is compiled from SchedMD's own official GitHub release source tarball (not a distro package — no distro ships anything close to current — and not a third-party image), with the download verified against the exact SHA256 digest GitHub's release API reports for that asset. Currently pinned to **26.05.2** (`Dockerfile` `ARG`s `SLURM_VERSION`/`SLURM_RELEASE_TAG`/`SLURM_SHA256`) — check [SchedMD's releases](https://github.com/SchedMD/slurm/releases) for the current version before bumping.
+
+Not every site runs the latest Slurm, though — this project's parsing is deliberately built to work across a wide version range (see `PLAN.md`). Worth periodically rebuilding this cluster against an older version too, to confirm nothing's been accidentally narrowed to only-latest-Slurm behavior.
 
 ## Bring it up
 
@@ -36,6 +38,7 @@ No persistent volumes are used on purpose — every `docker compose up --build` 
 | `impossible_nodes.sh` | Requests `--nodes=2` > partition's `MaxNodes=1` → reason `PartitionNodeLimit` |
 | `impossible_mem.sh` | Requests `--mem=3000M` > partition's `MaxMemPerNode=2000` → reason `MaxMemPerLimit` |
 | `impossible_time.sh` | Requests `--time=02:00:00` > partition's `MaxTime=01:00:00` → reason `PartitionTimeLimit` |
+| `oom.sh` | Requests `--mem=100M` then grows unbounded — killed by the real memory cgroup |
 
 Submit them as `testuser` (the only account configured in the test cluster's accounting DB):
 
@@ -61,9 +64,16 @@ docker exec --user testuser slurm-why-testcluster slurm-why <jobid>
 
 (swap `arm64` for `amd64` if your Docker host is x86_64.)
 
-## Known limitation: no OOM testing yet
+## Real cgroup memory enforcement (and what it took)
 
-This cluster doesn't configure cgroup-based memory enforcement (`TaskPlugin=task/affinity`, no `cgroup.conf`), so there's no way to trigger a genuine Slurm-issued `OUT_OF_MEMORY` kill here yet — getting cgroup v2 delegation working reliably inside Docker Desktop's nested VM turned out to be significant additional complexity, deferred rather than rushed. The OOM check itself is validated via the fixture-based unit tests (`internal/datasource/cli/testdata/sacct_oom.txt`) and the manual fixture-shadowing technique in `CONTRIBUTING.md`; this cluster currently covers the pending-reason decoder and impossible-request checks against real Slurm output, plus the completed-job fallback.
+`oom.sh` triggers a genuine memory-cgroup kill, not a simulated one. Getting there required more than `TaskPlugin=task/cgroup` + `cgroup.conf`:
+
+- **Slurm 26.05's `cgroup/v2` plugin needs `libdbus`** to build at all (the Dockerfile installs `libdbus-1-dev`/`libhwloc-dev`) — without it, only `cgroup_v1.so` gets compiled and `cgroup/v2` fails with a generic "plugin not found".
+- **The v2 plugin also needs a running D-Bus system daemon** for its systemd-scope integration (`entrypoint.sh` starts `dbus-daemon --system`) — and since this container has no real systemd, `cgroup.conf` sets `IgnoreSystemd=yes` so Slurm manages cgroups directly instead of asking systemd for a scope.
+- **cgroup v2 refuses to delegate a controller from a cgroup with processes directly attached to it** (the "no internal processes" rule). Docker starts every container process directly in the container's own cgroup, so `entrypoint.sh` relocates itself (and everything it spawns) into a child `init/` cgroup first, then enables `memory`/`pids`/`cpu` in `cgroup.subtree_control` at the container's own level — only after that can Slurm's per-job cgroups underneath actually enforce `ConstrainRAMSpace`.
+- The container also needs `privileged: true`, `cgroup: host`, and the host's `/sys/fs/cgroup` mounted in (see `docker-compose.yml`) for any of this to be reachable at all.
+
+One nuance discovered along the way: Slurm's own internal OOM classification (`JobState=OUT_OF_MEMORY`, `ExitCode=0:125`) didn't reliably fire in this setup even once real cgroup enforcement was confirmed working (`MaxRSS` dropping to a few MB instead of growing unconstrained) — the kill itself is real, but Slurm's `oom_kill` event-counter polling didn't pick it up here, possibly due to the nested cgroup relocation above. What *does* show up reliably is the OS-level signal death: `ExitCode=137` (a bash-wrapped batch script, the common case) or `ExitSignal=9` (a script that `exec`s the killed process directly) — this is exactly what led to fixing `oomApplies()` to check for those in addition to the textbook `OUT_OF_MEMORY` state.
 
 ## Tear down
 
