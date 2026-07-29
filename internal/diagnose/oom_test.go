@@ -15,6 +15,15 @@ func TestOOMCheck_Applies(t *testing.T) {
 	}{
 		{datasource.Job{State: "OUT_OF_MEMORY"}, true},
 		{datasource.Job{State: "FAILED", ExitSignal: 9}, true},
+		// The common real-world case: a bash-wrapped batch script whose
+		// child process gets killed by the memory cgroup. bash itself
+		// exits normally with the propagated 128+9 status, so sacct
+		// reports it as ExitCode=137, ExitSignal=0 -- confirmed against a
+		// live cluster.
+		{datasource.Job{State: "FAILED", ExitCode: 137, ExitSignal: 0}, true},
+		// Slurm's own internal OOM marker (SIG_OOM=253, reported as
+		// ExitSignal=125).
+		{datasource.Job{State: "FAILED", ExitSignal: 125}, true},
 		{datasource.Job{State: "COMPLETED"}, false},
 		{datasource.Job{State: "PENDING"}, false},
 	}
