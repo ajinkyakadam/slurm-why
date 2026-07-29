@@ -1,0 +1,10 @@
+services:
+  slurm:
+    build: .
+    hostname: slurmtest
+    container_name: slurm-why-testcluster
+    # No persistent volumes on purpose: every `docker compose up --build`
+    # gives a genuinely fresh cluster (fresh accounting DB, no leftover job
+    # history), which matters more for reproducible test cases than fast
+    # restarts. Re-initializing MariaDB takes only a few seconds.
+    tty: true
