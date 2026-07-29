@@ -1,0 +1,3 @@
+123|OUT_OF_MEMORY|0:125|myacct|compute|normal|jdoe|4Gn||00:12:34|01:00:00|cpu=2,mem=4G,node=1
+123.batch|OUT_OF_MEMORY|0:125|myacct|compute|normal|jdoe|4Gn|4123456K|00:12:34|01:00:00|
+123.extern|COMPLETED|0:0|myacct|compute|normal|jdoe|4Gn|1024K|00:12:40|01:00:00|
