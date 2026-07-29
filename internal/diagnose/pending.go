@@ -56,6 +56,24 @@ var pendingReasons = map[string]reasonInfo{
 		why: "The account you requested doesn't exist or you're not a member of it.",
 		fix: "Run `sacctmgr show assoc user=$USER` to see accounts you belong to, then resubmit with a correct --account.",
 	},
+	// The three codes below are confirmed against a live Slurm cluster
+	// (21.08): a single job that exceeds a partition's per-job ceiling
+	// gets one of these specific codes, not the generic "Resources" --
+	// Slurm already tells you exactly which limit you hit. The
+	// impossible-request check enriches these with the actual numbers;
+	// this is the fallback if that lookup fails for any reason.
+	"PartitionNodeLimit": {
+		why: "Your job requests more nodes than this partition allows for a single job (its configured MaxNodes).",
+		fix: "Run `scontrol show partition <partition>` to see the MaxNodes ceiling, and reduce --nodes to fit within it.",
+	},
+	"MaxMemPerLimit": {
+		why: "Your job requests more memory per node than this partition allows for a single job (its configured MaxMemPerNode).",
+		fix: "Run `scontrol show partition <partition>` to see the MaxMemPerNode ceiling, and reduce --mem to fit within it.",
+	},
+	"PartitionTimeLimit": {
+		why: "Your job's --time exceeds this partition's maximum allowed walltime for a single job (its configured MaxTime).",
+		fix: "Run `scontrol show partition <partition>` to see the MaxTime ceiling, and reduce --time to fit within it.",
+	},
 }
 
 func runPendingCheck(ctx context.Context, ds datasource.JobDataSource, job *datasource.Job) (*format.Diagnosis, error) {
