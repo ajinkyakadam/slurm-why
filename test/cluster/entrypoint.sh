@@ -1,6 +1,24 @@
 #!/bin/bash
 set -e
 
+# cgroup v2 refuses to delegate a controller from a cgroup that has
+# processes directly attached to it (the "no internal processes" rule).
+# Everything Docker starts us with lives directly in our container's own
+# cgroup, so before anything else, relocate this shell (and everything it
+# will spawn) into a child cgroup, then enable memory/pids/cpu delegation
+# at our level so Slurm's own per-job cgroups underneath can enforce
+# limits.
+MY_CGROUP=$(cut -d: -f3 /proc/self/cgroup)
+if [ -d "/sys/fs/cgroup${MY_CGROUP}" ] && [ ! -d "/sys/fs/cgroup${MY_CGROUP}/init" ]; then
+  mkdir -p "/sys/fs/cgroup${MY_CGROUP}/init"
+  echo $$ > "/sys/fs/cgroup${MY_CGROUP}/init/cgroup.procs"
+  echo "+memory +pids +cpu" > "/sys/fs/cgroup${MY_CGROUP}/cgroup.subtree_control"
+fi
+
+echo "=== starting dbus ==="
+mkdir -p /run/dbus
+dbus-daemon --system --fork
+
 echo "=== starting munge ==="
 service munge start
 
