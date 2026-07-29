@@ -1,0 +1,3 @@
+456|COMPLETED|0:0|myacct|compute|normal|jdoe|8Gn||01:59:10|02:00:00|cpu=4,mem=8G,node=1
+456.batch|COMPLETED|0:0|myacct|compute|normal|jdoe|8Gn|2097152K|01:59:10|02:00:00|
+456.extern|COMPLETED|0:0|myacct|compute|normal|jdoe|8Gn|512K|01:59:15|02:00:00|
