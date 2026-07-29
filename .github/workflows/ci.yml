@@ -56,3 +56,61 @@ jobs:
           GOARCH: ${{ matrix.goarch }}
           CGO_ENABLED: "0"
         run: go build ./...
+
+  # Builds once here so os-smoke-test (below) can run the same artifact
+  # inside multiple distro containers, rather than each matrix leg needing
+  # its own Go toolchain installed.
+  build-smoke-test-binary:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: "1.23"
+      - env:
+          GOOS: linux
+          GOARCH: amd64
+          CGO_ENABLED: "0"
+        run: go build -o slurm-why ./cmd/slurm-why
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: slurm-why-linux-amd64
+          path: slurm-why
+
+  # The whole premise of shipping a CGO_ENABLED=0 static binary is that it
+  # runs unmodified across the RHEL-family and SUSE distros login nodes
+  # actually use, without glibc-version or missing-shared-library issues.
+  # This proves that, rather than just proving the source compiles: runs
+  # the real cross-compiled artifact inside each distro's own official
+  # container image, exercised against real diagnosis logic using the
+  # fixture-shadowing technique from CONTRIBUTING.md (no live Slurm needed).
+  os-smoke-test:
+    needs: build-smoke-test-binary
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ matrix.image }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: rockylinux-9
+            image: rockylinux@sha256:d7be1c094cc5845ee815d4632fe377514ee6ebcf8efaed6892889657e5ddaaa6
+          - name: opensuse-leap-15.6
+            image: opensuse/leap@sha256:79be7751205ea84559990fb76b1bec71e38d6fad41c70a4f6c921b803b58f421
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: slurm-why-linux-amd64
+      - name: Run slurm-why against fixture data (no real Slurm needed)
+        run: |
+          set -e
+          chmod +x slurm-why
+          mkdir -p fake-slurm
+          cat > fake-slurm/sacct <<'EOF'
+          #!/bin/sh
+          cat "$GITHUB_WORKSPACE/internal/datasource/cli/testdata/sacct_oom.txt"
+          EOF
+          chmod +x fake-slurm/sacct
+          PATH="$PWD/fake-slurm:$PATH" ./slurm-why 123 | tee output.txt
+          grep -q "OOM" output.txt
