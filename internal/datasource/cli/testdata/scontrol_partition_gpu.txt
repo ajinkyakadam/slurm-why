@@ -1,0 +1,11 @@
+PartitionName=gpu
+   AllowGroups=ALL AllowAccounts=ALL AllowQos=ALL
+   AllocNodes=ALL Default=NO QoS=N/A
+   DefaultTime=00:30:00 DisableRootJobs=NO ExclusiveUser=NO GraceTime=0
+   Hidden=NO MaxNodes=2 MaxTime=04:00:00 MinNodes=1 LLN=NO MaxCPUsPerNode=UNLIMITED
+   MaxMemPerNode=131072 Nodes=gpu[001-008]
+   PriorityJobFactor=1 PriorityTier=1 RootOnly=NO ReqResv=NO OverSubscribe=NO
+   OverTimeLimit=NONE PreemptMode=OFF
+   State=UP TotalCPUs=256 TotalNodes=8 SelectTypeParameters=NONE
+   JobDefaults=(null)
+   DefMemPerNode=65536 MaxMemPerCPU=UNLIMITED
