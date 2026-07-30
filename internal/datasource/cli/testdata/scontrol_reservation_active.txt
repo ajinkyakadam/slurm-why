@@ -1,0 +1,6 @@
+ReservationName=maint4 StartTime=2026-07-30T05:35:02 EndTime=2026-07-30T07:35:02 Duration=02:00:00
+   Nodes=slurmtest NodeCnt=1 CoreCnt=2 Features=(null) PartitionName=(null) Flags=MAINT,SPEC_NODES
+   TRES=cpu=2
+   AllowedPartitions=(null) QOS=(null)
+   Users=root,testuser Groups=(null) Accounts=(null) Licenses=(null) State=ACTIVE BurstBuffer=(null)
+   MaxStartDelay=(null)

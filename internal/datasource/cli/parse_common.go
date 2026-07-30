@@ -99,6 +99,25 @@ func parseSlurmDuration(s string) (time.Duration, bool, error) {
 	return total, true, nil
 }
 
+// slurmTimeLayout is the timestamp format scontrol uses for StartTime/
+// EndTime fields, e.g. "2026-07-30T05:35:02" (no timezone -- always the
+// scheduler's local time).
+const slurmTimeLayout = "2006-01-02T15:04:05"
+
+// parseSlurmTime parses a scontrol timestamp field, returning the zero
+// time (no error) for Slurm's "not applicable yet" sentinels.
+func parseSlurmTime(s string) (time.Time, error) {
+	s = strings.TrimSpace(s)
+	if s == "" || strings.EqualFold(s, "Unknown") || strings.EqualFold(s, "N/A") || strings.EqualFold(s, "NONE") {
+		return time.Time{}, nil
+	}
+	t, err := time.Parse(slurmTimeLayout, s)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("parseSlurmTime: %q: %w", s, err)
+	}
+	return t, nil
+}
+
 // parseTRES splits a Slurm TRES string ("cpu=4,mem=4G,node=1,gres/gpu=2")
 // into a flat key->value map. Keys keep any "gres/" prefix as-is.
 func parseTRES(s string) map[string]string {

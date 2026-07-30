@@ -23,6 +23,8 @@ type fakeDataSource struct {
 	dependencyErr   error
 	pendingJobIDs   []string
 	pendingJobsErr  error
+	reservation     *datasource.ReservationInfo
+	reservationErr  error
 }
 
 func (f *fakeDataSource) GetJob(ctx context.Context, jobID string) (*datasource.Job, error) {
@@ -57,6 +59,10 @@ func (f *fakeDataSource) GetDependency(ctx context.Context, jobID string) (*data
 
 func (f *fakeDataSource) GetPendingJobIDs(ctx context.Context) ([]string, error) {
 	return f.pendingJobIDs, f.pendingJobsErr
+}
+
+func (f *fakeDataSource) GetReservation(ctx context.Context, jobID string) (*datasource.ReservationInfo, error) {
+	return f.reservation, f.reservationErr
 }
 
 func (f *fakeDataSource) Backend() string { return "fake" }
