@@ -19,6 +19,10 @@ type fakeDataSource struct {
 	pendingErr      error
 	partitionLimits map[string]*datasource.PartitionLimits
 	qosLimits       map[string]*datasource.QOSLimits
+	dependency      *datasource.Dependency
+	dependencyErr   error
+	pendingJobIDs   []string
+	pendingJobsErr  error
 }
 
 func (f *fakeDataSource) GetJob(ctx context.Context, jobID string) (*datasource.Job, error) {
@@ -45,6 +49,14 @@ func (f *fakeDataSource) GetQOSLimits(ctx context.Context, qos string) (*datasou
 
 func (f *fakeDataSource) GetAssocLimits(ctx context.Context, account, user, partition string) (*datasource.AssocLimits, error) {
 	return nil, fmt.Errorf("fakeDataSource.GetAssocLimits not used in these tests")
+}
+
+func (f *fakeDataSource) GetDependency(ctx context.Context, jobID string) (*datasource.Dependency, error) {
+	return f.dependency, f.dependencyErr
+}
+
+func (f *fakeDataSource) GetPendingJobIDs(ctx context.Context) ([]string, error) {
+	return f.pendingJobIDs, f.pendingJobsErr
 }
 
 func (f *fakeDataSource) Backend() string { return "fake" }
