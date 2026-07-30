@@ -1,6 +1,12 @@
 # slurm-why
 
+[![CI](https://github.com/ajinkyakadam/slurm-why/actions/workflows/ci.yml/badge.svg)](https://github.com/ajinkyakadam/slurm-why/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/ajinkyakadam/slurm-why/main/.github/badges/coverage.json)](https://github.com/ajinkyakadam/slurm-why/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 Plain-English diagnoses for confusing Slurm job states — instead of decoding raw `sacct`/`squeue`/`scontrol` output yourself, run `slurm-why <job-id>` and get a **Diagnosis → Why → Fix**.
+
+If slurm-why saves you a trip to `man squeue`, consider giving it a ⭐ — it's the easiest way to help others on your cluster find it.
 
 ```
 $ slurm-why 483201
@@ -30,22 +36,25 @@ The one config-dependent caveat: some sites set `PrivateData=jobs` in `slurm.con
 
 ## Install
 
-**Building from source is the only path that works today** — no release has been tagged yet, so the options below aren't live. They're fully built and validated (see `.goreleaser.yaml`, exercised locally with `goreleaser release --snapshot`), just waiting on the first `vX.Y.Z` tag — see `docs/releasing.md` for the versioning plan.
+### RHEL-family: no-root or RPM
 
-### Homebrew (macOS) — coming soon
-```
-brew install ajinkyakadam/slurm-why/slurm-why
-```
-
-### RHEL-family: no-root or RPM — coming soon
-Full instructions (including checksum verification and air-gapped mirroring) in [`docs/install.md`](docs/install.md) once a release exists. Short version:
+Full instructions (checksum verification, air-gapped mirroring) in [`docs/install.md`](docs/install.md). Short version:
 ```
 # no root needed
-tar xzf slurm-why_<version>_linux_amd64.tar.gz && mv slurm-why ~/.local/bin/
+curl -LO https://github.com/ajinkyakadam/slurm-why/releases/latest/download/slurm-why_linux_amd64.tar.gz
+tar xzf slurm-why_linux_amd64.tar.gz && mv slurm-why ~/.local/bin/
 
 # or, cluster-wide
 sudo dnf install ./slurm-why-<version>-1.<arch>.rpm
 ```
+
+### Homebrew (macOS) — 🚧 not yet available
+
+```
+brew install ajinkyakadam/slurm-why/slurm-why
+```
+
+This will work once the `homebrew-slurm-why` tap is set up (see `docs/releasing.md`) — not yet done, so this command doesn't work today. Build from source below in the meantime.
 
 ### Building from source (works now)
 
@@ -96,7 +105,7 @@ go vet ./...
 go test ./... -race -cover
 ```
 
-Tests are entirely fixture-based (see `internal/datasource/cli/testdata/`) — no real Slurm installation is required to run the test suite. Manually exercising the CLI against a live cluster is a separate, ongoing effort (tracked internally) since CI can't spin up a real `slurmctld`/`slurmdbd`.
+Tests are entirely fixture-based (see `internal/datasource/cli/testdata/`) — no real Slurm installation is required to run the test suite. For manual validation against a real cluster, see [`test/cluster/`](test/cluster/README.md) — a local Docker-based Slurm 26.05.2 cluster used to confirm each diagnosis (including real cgroup-enforced OOM kills) against actual `sacct`/`squeue`/`scontrol` output, not just fixtures.
 
 ## Contributing
 

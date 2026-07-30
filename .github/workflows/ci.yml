@@ -57,6 +57,47 @@ jobs:
           CGO_ENABLED: "0"
         run: go build ./...
 
+  # Regenerates the README's coverage badge data on main -- self-hosted
+  # via a committed shields.io "endpoint" JSON file rather than a
+  # third-party coverage service, so no external account/token is needed.
+  # Skipped on PRs: only main's coverage should be reflected in the badge.
+  coverage-badge:
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: "1.23"
+      - name: Compute total coverage
+        id: cov
+        run: |
+          go test ./... -coverprofile=coverage.out >/dev/null
+          pct=$(go tool cover -func=coverage.out | grep ^total: | awk '{print $3}' | tr -d '%')
+          echo "pct=$pct" >> "$GITHUB_OUTPUT"
+          color=red
+          awk -v p="$pct" 'BEGIN { exit !(p >= 80) }' && color=brightgreen
+          awk -v p="$pct" 'BEGIN { exit !(p >= 60 && p < 80) }' && color=yellow
+          echo "color=$color" >> "$GITHUB_OUTPUT"
+      - name: Update badge data
+        run: |
+          mkdir -p .github/badges
+          cat > .github/badges/coverage.json <<EOF
+          {"schemaVersion":1,"label":"coverage","message":"${{ steps.cov.outputs.pct }}%","color":"${{ steps.cov.outputs.color }}"}
+          EOF
+      - name: Commit if changed
+        run: |
+          if ! git diff --quiet -- .github/badges/coverage.json; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add .github/badges/coverage.json
+            git commit -m "Update coverage badge [skip ci]"
+            git push
+          fi
+
   # Builds once here so os-smoke-test (below) can run the same artifact
   # inside multiple distro containers, rather than each matrix leg needing
   # its own Go toolchain installed.
