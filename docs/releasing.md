@@ -19,7 +19,6 @@ No version file to bump by hand — GoReleaser injects the version string from t
    - build RPM packages (NVR-versioned: `slurm-why-X.Y.Z-1.<arch>.rpm`)
    - generate `checksums.txt` for every archive/package
    - create a GitHub Release with an auto-generated changelog from commit messages
-   - push an updated Homebrew Cask to the `homebrew-slurm-why` tap (once that tap + secret exist — see below; every other step above succeeds without it)
 4. After GoReleaser finishes, edit the GitHub Release description to add one line: **which live Slurm version(s) this release was validated against** (see `test/cluster/`). This is the single most useful thing an admin sees before deciding to upgrade — everything else in the changelog is "what changed," this is "does it still work with what I actually run."
 
 ## What makes this easy for HPC admins specifically
@@ -28,7 +27,6 @@ No version file to bump by hand — GoReleaser injects the version string from t
 - **Checksum verification is one `sha256sum -c` away.** GoReleaser publishes `checksums.txt` alongside every release; `docs/install.md` shows verifying against it before running anything downloaded onto a shared login node.
 - **RPM versioning is just normal `dnf` semantics.** Name-version-release packaging means an admin can mirror multiple versions in an internal repo and use `dnf upgrade`/`dnf downgrade` exactly like any other package — no slurm-why-specific tooling to learn.
 - **Air-gapped mirroring is straightforward.** A pinned download + its checksum are exactly what's needed to copy a known-good artifact onto an isolated cluster's internal mirror once, with no repeated trust decisions per node.
-- **Homebrew upgrades via plain `brew upgrade`** once the tap is live.
 
 ## Pre-release checklist
 
@@ -36,13 +34,3 @@ No version file to bump by hand — GoReleaser injects the version string from t
 - [ ] `test/cluster/` still validates the 3 v0.1 diagnoses (rebuild + rerun if anything in `internal/datasource` or `internal/diagnose` changed since the last release)
 - [ ] Bump type matches the rules above, not just "whatever feels right"
 - [ ] After tagging: edit the GitHub Release description to note the Slurm version(s) validated against
-- [ ] If this is the first release ever: confirm the `homebrew-slurm-why` tap repo and `HOMEBREW_TAP_GITHUB_TOKEN` secret are set up (see below) — otherwise only the Homebrew publish step fails, binaries/RPM/GitHub Release still succeed
-
-## Homebrew tap prerequisite (one-time setup)
-
-`homebrew_casks` in `.goreleaser.yaml` publishes to a separate repo, `github.com/ajinkyakadam/homebrew-slurm-why`, using a `HOMEBREW_TAP_GITHUB_TOKEN` secret — the default `GITHUB_TOKEN` GitHub Actions provides is scoped only to this repo and can't push cross-repo. Until both exist, every release still succeeds except the Homebrew publish step, which fails harmlessly on its own.
-
-Two things need to exist, and both require a decision/action from a repo owner rather than something automatable from here:
-
-1. **The tap repo itself** (`ajinkyakadam/homebrew-slurm-why`) — an empty public repo with just a README. GoReleaser creates/updates `Casks/slurm-why.rb` in it on every release automatically once it exists.
-2. **A fine-grained PAT** scoped to `Contents: Read and write` on just that one tap repo (GitHub Settings → Developer settings → Fine-grained tokens), added as a repo secret on `slurm-why` named `HOMEBREW_TAP_GITHUB_TOKEN` — e.g. `gh secret set HOMEBREW_TAP_GITHUB_TOKEN --repo ajinkyakadam/slurm-why`. Generating this token has to happen through GitHub's own UI under your account; it isn't something that can be scripted on your behalf.

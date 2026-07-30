@@ -55,26 +55,6 @@ nfpms:
       of decoding raw sacct/squeue/scontrol output yourself.
     license: MIT
 
-# Publishes to the separate ajinkyakadam/homebrew-slurm-why tap repo, as
-# a Cask (GoReleaser's `brews` key is deprecated in favor of
-# `homebrew_casks` -- Homebrew itself now recommends Casks over the old
-# hand-rolled-binary-install Formula approach, even for CLI tools).
-# Requires that repo to exist and a HOMEBREW_TAP_GITHUB_TOKEN secret
-# (a PAT with contents:write on the tap repo -- the default GITHUB_TOKEN
-# can't push cross-repo) configured on this repo before a real release
-# can publish; local/snapshot builds skip this step entirely.
-homebrew_casks:
-  - name: slurm-why
-    repository:
-      owner: ajinkyakadam
-      name: homebrew-slurm-why
-      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
-    homepage: https://github.com/ajinkyakadam/slurm-why
-    description: >-
-      Plain-English diagnoses for confusing Slurm job states -- instead
-      of decoding raw sacct/squeue/scontrol output yourself.
-    license: MIT
-
 changelog:
   sort: asc
   filters:

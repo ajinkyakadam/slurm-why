@@ -25,10 +25,3 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # A PAT with contents:write on ajinkyakadam/homebrew-slurm-why --
-          # the default GITHUB_TOKEN above is scoped only to this repo and
-          # can't push to the separate tap repo. Must be created manually
-          # and added as a repo secret before the homebrew_casks publish
-          # step can succeed; every other part of this workflow (binaries,
-          # RPMs, GitHub release) works without it.
-          HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
