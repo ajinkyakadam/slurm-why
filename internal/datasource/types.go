@@ -83,6 +83,17 @@ type AssocLimits struct {
 	MaxSubmit int
 }
 
+// ReservationInfo is the named reservation a job explicitly requested via
+// --reservation=<name>, with the window and scope needed to explain why
+// it's (still) waiting.
+type ReservationInfo struct {
+	Name      string
+	StartTime time.Time
+	EndTime   time.Time
+	Nodes     string
+	State     string // e.g. "ACTIVE", "INACTIVE"
+}
+
 // Dependency is a job's raw --dependency spec, as Slurm reports it. Slurm
 // itself annotates each referenced job with its current resolution status
 // in parens, e.g. "afterok:123(failed)" or "afterok:123(unfulfilled)" --
@@ -103,6 +114,12 @@ type JobDataSource interface {
 	GetQOSLimits(ctx context.Context, qos string) (*QOSLimits, error)
 	GetAssocLimits(ctx context.Context, account, user, partition string) (*AssocLimits, error)
 	GetDependency(ctx context.Context, jobID string) (*Dependency, error)
+
+	// GetReservation returns the reservation a job explicitly requested via
+	// --reservation=<name>, or nil if the job doesn't reference one.
+	// Reservation configuration is visible to any user the same way
+	// partition configuration is, so this needs no special access.
+	GetReservation(ctx context.Context, jobID string) (*ReservationInfo, error)
 
 	// GetPendingJobIDs lists every job currently pending cluster-wide (not
 	// just the caller's own), for admin-mode queue triage. Read-only and
