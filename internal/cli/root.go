@@ -6,12 +6,14 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/ajinkyakadam/slurm-why/internal/datasource"
 	"github.com/ajinkyakadam/slurm-why/internal/datasource/resolve"
 	"github.com/ajinkyakadam/slurm-why/internal/diagnose"
 	"github.com/ajinkyakadam/slurm-why/internal/format"
 )
 
 var verbose bool
+var admin bool
 
 var rootCmd = &cobra.Command{
 	Use:   "slurm-why <job-id>",
@@ -32,6 +34,14 @@ output.`,
 
 func init() {
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "show which data backend (REST or CLI) was used")
+	// GetJob et al. already work for any job ID regardless of who
+	// submitted it -- Slurm's own permission model (AdminLevel=Operator/
+	// Admin, account coordinator, or just an unrestricted site) governs
+	// what a user can actually see, not this tool. --admin doesn't change
+	// what gets fetched; it adds raw technical detail an operator
+	// triaging someone else's job wants but a job's own owner usually
+	// doesn't need.
+	rootCmd.PersistentFlags().BoolVar(&admin, "admin", false, "show additional raw technical detail, for operators triaging another user's job")
 }
 
 func runDiagnose(cmd *cobra.Command, args []string) error {
@@ -54,7 +64,32 @@ func runDiagnose(cmd *cobra.Command, args []string) error {
 	}
 
 	_, _ = fmt.Fprint(cmd.OutOrStdout(), format.Render(d))
+	if admin {
+		_, _ = fmt.Fprint(cmd.OutOrStdout(), renderTechnicalDetails(job))
+	}
 	return nil
+}
+
+// renderTechnicalDetails prints the raw Job fields the plain-English
+// diagnosis doesn't surface directly -- useful for an operator fielding a
+// ticket about a job they don't own, less so for the job's own user.
+func renderTechnicalDetails(job *datasource.Job) string {
+	return fmt.Sprintf(`
+--- Technical details (--admin) ---
+Job ID:      %s
+State:       %s
+User:        %s
+Account:     %s
+Partition:   %s
+QOS:         %s
+Requested:   cpus=%d nodes=%d gpus=%d
+Elapsed:     %s / TimeLimit: %s
+Exit:        code=%d signal=%d
+`,
+		job.ID, job.State, job.User, job.Account, job.Partition, job.QOS,
+		job.ReqCPUs, job.ReqNodes, job.ReqGPUs,
+		job.Elapsed, job.TimeLimit,
+		job.ExitCode, job.ExitSignal)
 }
 
 // Execute runs the root command.
