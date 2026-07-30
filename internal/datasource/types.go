@@ -77,6 +77,15 @@ type AssocLimits struct {
 	MaxSubmit int
 }
 
+// Dependency is a job's raw --dependency spec, as Slurm reports it. Slurm
+// itself annotates each referenced job with its current resolution status
+// in parens, e.g. "afterok:123(failed)" or "afterok:123(unfulfilled)" --
+// the latter means the parent simply hasn't finished yet (a normal wait),
+// the former means the dependency can now never be satisfied.
+type Dependency struct {
+	Raw string // e.g. "afterok:123(failed)"; empty if the job has none
+}
+
 // JobDataSource is implemented by both the REST and CLI backends. All
 // methods are read-only — none of the diagnosis checks need write access to
 // Slurm, only visibility into a job's own state and the cluster's published
@@ -87,6 +96,14 @@ type JobDataSource interface {
 	GetPartitionLimits(ctx context.Context, partition string) (*PartitionLimits, error)
 	GetQOSLimits(ctx context.Context, qos string) (*QOSLimits, error)
 	GetAssocLimits(ctx context.Context, account, user, partition string) (*AssocLimits, error)
+	GetDependency(ctx context.Context, jobID string) (*Dependency, error)
+
+	// GetPendingJobIDs lists every job currently pending cluster-wide (not
+	// just the caller's own), for admin-mode queue triage. Read-only and
+	// no more privileged than any other lookup here -- squeue's queue view
+	// is public by default (subject to the same PrivateData=jobs caveat as
+	// everything else in this interface).
+	GetPendingJobIDs(ctx context.Context) ([]string, error)
 
 	// Backend identifies which implementation is in use ("cli" or "rest"),
 	// surfaced to the user via -v/--verbose.

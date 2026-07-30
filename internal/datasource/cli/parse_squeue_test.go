@@ -28,3 +28,23 @@ func TestParseSqueueOutput_NotFound(t *testing.T) {
 		t.Fatal("expected an error when squeue has no rows for the job, got nil")
 	}
 }
+
+func TestParsePendingJobIDs(t *testing.T) {
+	out := readFixture(t, "squeue_pending_jobs.txt")
+	got := parsePendingJobIDs(out)
+	want := []string{"10", "23", "57"}
+	if len(got) != len(want) {
+		t.Fatalf("parsePendingJobIDs() = %v, want %v", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Errorf("parsePendingJobIDs()[%d] = %q, want %q", i, got[i], want[i])
+		}
+	}
+}
+
+func TestParsePendingJobIDs_Empty(t *testing.T) {
+	if got := parsePendingJobIDs([]byte("")); len(got) != 0 {
+		t.Errorf("parsePendingJobIDs(empty) = %v, want empty", got)
+	}
+}

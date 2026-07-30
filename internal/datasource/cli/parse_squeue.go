@@ -31,3 +31,24 @@ func parseSqueueOutput(out []byte, jobID string) (*datasource.PendingReason, err
 	reason := strings.Trim(strings.TrimSpace(rows[0]["Reason"]), "()")
 	return &datasource.PendingReason{Code: reason}, nil
 }
+
+// GetPendingJobIDs lists every job ID currently pending cluster-wide, for
+// admin-mode queue triage.
+func (c *Client) GetPendingJobIDs(ctx context.Context) ([]string, error) {
+	out, err := c.run(ctx, "squeue", "-h", "-t", "PENDING", "-o", "%i")
+	if err != nil {
+		return nil, fmt.Errorf("squeue: %w", err)
+	}
+	return parsePendingJobIDs(out), nil
+}
+
+func parsePendingJobIDs(out []byte) []string {
+	var ids []string
+	for _, line := range strings.Split(string(out), "\n") {
+		line = strings.TrimSpace(line)
+		if line != "" {
+			ids = append(ids, line)
+		}
+	}
+	return ids
+}
