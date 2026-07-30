@@ -56,6 +56,15 @@ var pendingReasons = map[string]reasonInfo{
 		why: "The account you requested doesn't exist or you're not a member of it.",
 		fix: "Run `sacctmgr show assoc user=$USER` to see accounts you belong to, then resubmit with a correct --account.",
 	},
+	// Confirmed against a live cluster: a job with an unresolved
+	// --dependency shows this reason (Dependency=afterok:N(unfulfilled)
+	// in scontrol show job) while the parent is still running/pending --
+	// a normal wait, distinct from DependencyNeverSatisfied below, which
+	// the dedicated dependency check owns.
+	"Dependency": {
+		why: "This job is waiting for another job it depends on (--dependency) to reach the required state first.",
+		fix: "This is normal -- no action needed. It'll become eligible once the dependency job finishes.",
+	},
 	// The three codes below are confirmed against a live Slurm cluster
 	// (21.08): a single job that exceeds a partition's per-job ceiling
 	// gets one of these specific codes, not the generic "Resources" --
