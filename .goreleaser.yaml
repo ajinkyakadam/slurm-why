@@ -55,12 +55,13 @@ nfpms:
       of decoding raw sacct/squeue/scontrol output yourself.
     license: MIT
 
+# Delegates entirely to GitHub's own "generate release notes" API instead
+# of a raw git-log dump -- groups by PR (title + author + link), no
+# commit hashes, no manual regex-filtering of merge/bot commits needed.
+# Fits this project well since every change ships through a PR already;
+# see docs/releasing.md for what that means for PR titles going forward.
 changelog:
-  sort: asc
-  filters:
-    exclude:
-      - "^docs:"
-      - "^test:"
+  use: github-native
 
 release:
   github:
