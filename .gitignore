@@ -16,8 +16,6 @@
 coverage.*
 *.coverprofile
 profile.cov
-# ...except the committed README coverage-badge data, despite the name
-!.github/badges/coverage.json
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
