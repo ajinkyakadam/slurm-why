@@ -57,10 +57,14 @@ jobs:
           CGO_ENABLED: "0"
         run: go build ./...
 
-  # Regenerates the README's coverage badge data on main -- self-hosted
-  # via a committed shields.io "endpoint" JSON file rather than a
-  # third-party coverage service, so no external account/token is needed.
-  # Skipped on PRs: only main's coverage should be reflected in the badge.
+  # Regenerates the README's coverage badge on main. Uses shields.io's
+  # *static* badge endpoint (label/message/color embedded directly in the
+  # URL) rather than its "endpoint" JSON-fetch style -- the static form
+  # renders with no callback to this repo at all, so it works the same
+  # whether the repo is public or private. (The JSON-fetch style was tried
+  # first and failed with "resource not found": shields.io couldn't read
+  # a file from a private repo via the unauthenticated raw.githubusercontent
+  # URL.) Skipped on PRs: only main's coverage should be reflected.
   coverage-badge:
     needs: test
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -82,18 +86,15 @@ jobs:
           awk -v p="$pct" 'BEGIN { exit !(p >= 80) }' && color=brightgreen
           awk -v p="$pct" 'BEGIN { exit !(p >= 60 && p < 80) }' && color=yellow
           echo "color=$color" >> "$GITHUB_OUTPUT"
-      - name: Update badge data
+      - name: Update README badge URL
         run: |
-          mkdir -p .github/badges
-          cat > .github/badges/coverage.json <<EOF
-          {"schemaVersion":1,"label":"coverage","message":"${{ steps.cov.outputs.pct }}%","color":"${{ steps.cov.outputs.color }}"}
-          EOF
+          sed -i -E "s#(img.shields.io/badge/coverage-)[^)]*#\1${{ steps.cov.outputs.pct }}%25-${{ steps.cov.outputs.color }}#" README.md
       - name: Commit if changed
         run: |
-          if ! git diff --quiet -- .github/badges/coverage.json; then
+          if ! git diff --quiet -- README.md; then
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add .github/badges/coverage.json
+            git add README.md
             git commit -m "Update coverage badge [skip ci]"
             git push
           fi

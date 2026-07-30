@@ -1,12 +1,12 @@
 # slurm-why
 
 [![CI](https://github.com/ajinkyakadam/slurm-why/actions/workflows/ci.yml/badge.svg)](https://github.com/ajinkyakadam/slurm-why/actions/workflows/ci.yml)
-[![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/ajinkyakadam/slurm-why/main/.github/badges/coverage.json)](https://github.com/ajinkyakadam/slurm-why/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/badge/coverage-74.5%25-yellow)](https://github.com/ajinkyakadam/slurm-why/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 Plain-English diagnoses for confusing Slurm job states — instead of decoding raw `sacct`/`squeue`/`scontrol` output yourself, run `slurm-why <job-id>` and get a **Diagnosis → Why → Fix**.
 
-If slurm-why saves you a trip to `man squeue`, consider giving it a ⭐ — it's the easiest way to help others on your cluster find it.
+If slurm-why saves you a trip to `man squeue`, consider giving it a ⭐ — it helps others on your cluster find it. Run into a confusing Slurm failure it doesn't explain yet? [Open an issue](https://github.com/ajinkyakadam/slurm-why/issues) with the raw `sacct`/`squeue`/`scontrol` output — real day-to-day failure modes are exactly what grows this catalog, and a fix you contribute back helps the next person who hits the same wall.
 
 ```
 $ slurm-why 483201
