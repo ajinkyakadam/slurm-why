@@ -30,23 +30,20 @@ The one config-dependent caveat: some sites set `PrivateData=jobs` in `slurm.con
 
 ## Install
 
-**Building from source is the only path that works today** — no release has been tagged yet, so the options below aren't live. They're documented here because they're the committed plan (see the release workflow in `.goreleaser.yaml` once it lands), not speculative.
+**Building from source is the only path that works today** — no release has been tagged yet, so the options below aren't live. They're fully built and validated (see `.goreleaser.yaml`, exercised locally with `goreleaser release --snapshot`), just waiting on the first `vX.Y.Z` tag — see `docs/releasing.md` for the versioning plan.
 
 ### Homebrew (macOS) — coming soon
 ```
 brew install ajinkyakadam/slurm-why/slurm-why
 ```
 
-### Login node, no root — coming soon
-Download the release binary for your architecture, then:
+### RHEL-family: no-root or RPM — coming soon
+Full instructions (including checksum verification and air-gapped mirroring) in [`docs/install.md`](docs/install.md) once a release exists. Short version:
 ```
-chmod +x slurm-why
-mv slurm-why ~/.local/bin/
-```
-No package manager or network access needed on the login node itself — download the binary elsewhere (e.g. your laptop) and `scp` it over if the node is air-gapped.
+# no root needed
+tar xzf slurm-why_<version>_linux_amd64.tar.gz && mv slurm-why ~/.local/bin/
 
-### RHEL, cluster-wide (sysadmin) — coming soon
-```
+# or, cluster-wide
 sudo dnf install ./slurm-why-<version>-1.<arch>.rpm
 ```
 

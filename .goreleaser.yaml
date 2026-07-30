@@ -1,0 +1,88 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: slurm-why
+    main: ./cmd/slurm-why
+    binary: slurm-why
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+      - ppc64le
+    ignore:
+      - goos: darwin
+        goarch: ppc64le
+    ldflags:
+      - -s -w
+        -X github.com/ajinkyakadam/slurm-why/internal/cli.version={{.Version}}
+        -X github.com/ajinkyakadam/slurm-why/internal/cli.commit={{.ShortCommit}}
+        -X github.com/ajinkyakadam/slurm-why/internal/cli.date={{.Date}}
+
+archives:
+  - id: slurm-why-archive
+    formats: [tar.gz]
+    name_template: >-
+      {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}
+
+checksum:
+  name_template: "checksums.txt"
+
+# RPM for RHEL-family sysadmin installs (docs/install.md). Only applies
+# to the linux binaries from the builds block above (RPM has no meaning
+# for darwin) -- amd64/arm64/ppc64le all get one, since there's no
+# per-arch filter on this block worth adding just to drop the least-used
+# target.
+nfpms:
+  - id: slurm-why-rpm
+    package_name: slurm-why
+    file_name_template: "{{ .ConventionalFileName }}"
+    formats:
+      - rpm
+    vendor: ajinkyakadam
+    homepage: https://github.com/ajinkyakadam/slurm-why
+    maintainer: "Ajinkya Kadam <ajinkyakadam@users.noreply.github.com>"
+    description: >-
+      Plain-English diagnoses for confusing Slurm job states -- instead
+      of decoding raw sacct/squeue/scontrol output yourself.
+    license: MIT
+
+# Publishes to the separate ajinkyakadam/homebrew-slurm-why tap repo, as
+# a Cask (GoReleaser's `brews` key is deprecated in favor of
+# `homebrew_casks` -- Homebrew itself now recommends Casks over the old
+# hand-rolled-binary-install Formula approach, even for CLI tools).
+# Requires that repo to exist and a HOMEBREW_TAP_GITHUB_TOKEN secret
+# (a PAT with contents:write on the tap repo -- the default GITHUB_TOKEN
+# can't push cross-repo) configured on this repo before a real release
+# can publish; local/snapshot builds skip this step entirely.
+homebrew_casks:
+  - name: slurm-why
+    repository:
+      owner: ajinkyakadam
+      name: homebrew-slurm-why
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    homepage: https://github.com/ajinkyakadam/slurm-why
+    description: >-
+      Plain-English diagnoses for confusing Slurm job states -- instead
+      of decoding raw sacct/squeue/scontrol output yourself.
+    license: MIT
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+
+release:
+  github:
+    owner: ajinkyakadam
+    name: slurm-why
