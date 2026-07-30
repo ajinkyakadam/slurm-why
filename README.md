@@ -48,14 +48,6 @@ tar xzf slurm-why_linux_amd64.tar.gz && mv slurm-why ~/.local/bin/
 sudo dnf install ./slurm-why-<version>-1.<arch>.rpm
 ```
 
-### Homebrew (macOS) — 🚧 not yet available
-
-```
-brew install ajinkyakadam/slurm-why/slurm-why
-```
-
-This will work once the `homebrew-slurm-why` tap is set up (see `docs/releasing.md`) — not yet done, so this command doesn't work today. Build from source below in the meantime.
-
 ### Building from source (works now)
 
 Requires Go 1.23+.
