@@ -76,6 +76,15 @@ Add `-v`/`--verbose` to see which data backend was used:
 slurm-why -v <job-id>
 ```
 
+### Admin mode
+
+For operators, not just a job's own user:
+```
+slurm-why --admin <job-id>    # adds a raw technical-detail block (account, partition, QOS, requested resources, exit code) after the diagnosis
+slurm-why admin queue         # triages every pending job cluster-wide, bucketing "will never run" vs "just waiting" -- surfaces the broken ones before a confused user files a ticket
+```
+`--admin` doesn't change what data gets fetched -- `slurm-why <job-id>` already works for any job regardless of owner, since Slurm's own permission model (not this tool) governs who can see what.
+
 ## Diagnoses
 
 | Check | Status | Description |
@@ -83,10 +92,11 @@ slurm-why -v <job-id>
 | OOM-kill detection | ✅ | Job died `OUT_OF_MEMORY`; explains the sacct-sampling-vs-cgroup nuance; suggests a corrected `--mem` |
 | Pending-reason decoder | ✅ | Translates `NODELIST(REASON)` codes into plain English + a fix |
 | Impossible-request detector | ✅ | Job requests more than any partition/QOS will ever grant, so it pends forever with no error |
-| Dependency failures | 🟡 | Point at the failed parent job when `DependencyNeverSatisfied` |
-| Non-zero exit codes decoded | 🟡 | Map common exit codes/signals (137, 139, 124, 127) to likely causes |
-| Node failures / stuck requeues | 🟡 | `NODE_FAIL`, held-after-requeue jobs |
-| Efficiency nudges | 🟡 | Compare requested vs. used resources on completed jobs |
+| Dependency failures | ✅ | Names the specific parent job whose outcome broke a `--dependency=afterok` chain |
+| Non-zero exit codes decoded | ✅ | Maps common exit codes (126, 127, 139/segfault) to likely causes for `FAILED` jobs |
+| Node failures | ✅ | Explains a terminal `NODE_FAIL` as a hardware issue, not the user's fault |
+| Efficiency nudges | ✅ | Flags `COMPLETED` jobs that used far less than requested, suggests a right-sized resubmission |
+| Stuck-held requeues | 🟡 | A job held after a launch failure (distinct from `NODE_FAIL`) -- couldn't reproduce this against a live cluster yet, deferred rather than guessing |
 | Array-job pitfalls, GPU/`--gres` mistakes, fairshare breakdown | 🟡 | Planned, unscheduled |
 
 ## Local development
