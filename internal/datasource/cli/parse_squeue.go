@@ -29,7 +29,18 @@ func parseSqueueOutput(out []byte, jobID string) (*datasource.PendingReason, err
 		return nil, fmt.Errorf("squeue: job %s not found in the live queue (it may have already finished)", jobID)
 	}
 	reason := strings.Trim(strings.TrimSpace(rows[0]["Reason"]), "()")
-	return &datasource.PendingReason{Code: reason}, nil
+
+	// Confirmed against a live cluster: some reasons come back as a
+	// compound "Code, free-text detail" string, e.g.
+	// "ReqNodeNotAvail, Reserved for maintenance" for a job blocked by
+	// another reservation. Split off the code so map lookups against the
+	// bare reason (e.g. "ReqNodeNotAvail") still match, and keep the rest
+	// as Detail for checks that want to surface it.
+	code, detail, _ := strings.Cut(reason, ",")
+	return &datasource.PendingReason{
+		Code:   strings.TrimSpace(code),
+		Detail: strings.TrimSpace(detail),
+	}, nil
 }
 
 // GetPendingJobIDs lists every job ID currently pending cluster-wide, for

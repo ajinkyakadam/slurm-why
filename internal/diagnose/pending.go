@@ -9,7 +9,10 @@ import (
 )
 
 func init() {
-	Registry = append(Registry, Check{ID: "pending", Applies: pendingApplies, Run: runPendingCheck})
+	// Priority: pendingRunLast -- this is the generic catch-all for a PD
+	// job, so it must run after any more specific PD check (impossible,
+	// dependency, ...) has had a chance to defer to it by returning nil.
+	Registry = append(Registry, Check{ID: "pending", Applies: pendingApplies, Run: runPendingCheck, Priority: pendingRunLast})
 }
 
 func pendingApplies(j *datasource.Job) bool {
@@ -48,7 +51,10 @@ var pendingReasons = map[string]reasonInfo{
 		why: "Your job has a --begin time that hasn't arrived yet.",
 		fix: "This is expected -- the job becomes eligible to run once the requested begin time arrives.",
 	},
-	"InvalidQoS": {
+	// Confirmed against the Slurm source (job_state_reason.c): the code is
+	// "InvalidQOS" (all-caps QOS), not "InvalidQoS" -- the latter never
+	// matched any real squeue output.
+	"InvalidQOS": {
 		why: "The QOS you requested doesn't exist or isn't available to your account.",
 		fix: "Run `sacctmgr show qos` to see valid QOS names, then resubmit with a correct --qos.",
 	},
