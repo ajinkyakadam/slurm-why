@@ -31,6 +31,31 @@ func TestDiagnose_FirstMatchWins(t *testing.T) {
 	}
 }
 
+func TestDiagnose_RunsInPriorityOrderNotRegistrationOrder(t *testing.T) {
+	job := &datasource.Job{ID: "1", State: "PENDING"}
+	ds := &fakeDataSource{}
+
+	// Registered out of intended run order (catch-all first, specific
+	// check second) -- Priority must be what decides run order, not
+	// slice position.
+	checks := []Check{
+		{ID: "catch-all", Priority: pendingRunLast, Applies: alwaysApplies, Run: func(context.Context, datasource.JobDataSource, *datasource.Job) (*format.Diagnosis, error) {
+			return &format.Diagnosis{Title: "generic"}, nil
+		}},
+		{ID: "specific", Priority: 0, Applies: alwaysApplies, Run: func(context.Context, datasource.JobDataSource, *datasource.Job) (*format.Diagnosis, error) {
+			return &format.Diagnosis{Title: "specific"}, nil
+		}},
+	}
+
+	got, err := Diagnose(context.Background(), ds, job, checks)
+	if err != nil {
+		t.Fatalf("Diagnose: %v", err)
+	}
+	if got.Title != "specific" {
+		t.Errorf("Diagnose().Title = %q, want %q (lower Priority should run first regardless of slice order)", got.Title, "specific")
+	}
+}
+
 func TestDiagnose_DefersWhenCheckReturnsNil(t *testing.T) {
 	job := &datasource.Job{ID: "1", State: "PENDING"}
 	ds := &fakeDataSource{}

@@ -4,12 +4,16 @@ import "testing"
 
 func TestParseSqueueOutput(t *testing.T) {
 	tests := []struct {
-		fixture  string
-		jobID    string
-		wantCode string
+		fixture    string
+		jobID      string
+		wantCode   string
+		wantDetail string
 	}{
-		{"squeue_pending_priority.txt", "789", "Priority"},
-		{"squeue_pending_qosmax.txt", "790", "QOSMaxJobsPerUserLimit"},
+		{"squeue_pending_priority.txt", "789", "Priority", ""},
+		{"squeue_pending_qosmax.txt", "790", "QOSMaxJobsPerUserLimit", ""},
+		// Captured against a live cluster: a job blocked by another
+		// reservation reports a compound reason, not a bare code.
+		{"squeue_pending_reservation_detail.txt", "38", "ReqNodeNotAvail", "Reserved for maintenance"},
 	}
 	for _, tt := range tests {
 		out := readFixture(t, tt.fixture)
@@ -19,6 +23,9 @@ func TestParseSqueueOutput(t *testing.T) {
 		}
 		if reason.Code != tt.wantCode {
 			t.Errorf("parseSqueueOutput(%s).Code = %q, want %q", tt.fixture, reason.Code, tt.wantCode)
+		}
+		if reason.Detail != tt.wantDetail {
+			t.Errorf("parseSqueueOutput(%s).Detail = %q, want %q", tt.fixture, reason.Detail, tt.wantDetail)
 		}
 	}
 }

@@ -45,6 +45,12 @@ type Job struct {
 // PendingReason is the decoded NODELIST(REASON) info for a job in state PD.
 type PendingReason struct {
 	Code string // raw Slurm reason code, e.g. "Priority", "Resources", "QOSMaxJobsPerUserLimit"
+
+	// Detail is free-text Slurm sometimes appends after the code itself,
+	// e.g. squeue reporting "(ReqNodeNotAvail, Reserved for maintenance)"
+	// for a job blocked by another reservation. Empty when Slurm reports
+	// just the bare code.
+	Detail string
 }
 
 // PartitionLimits are the ceilings a partition can ever grant a job.

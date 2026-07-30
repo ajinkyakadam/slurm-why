@@ -2,6 +2,7 @@ package diagnose
 
 import (
 	"context"
+	"sort"
 
 	"github.com/ajinkyakadam/slurm-why/internal/datasource"
 	"github.com/ajinkyakadam/slurm-why/internal/format"
@@ -28,7 +29,11 @@ func Diagnose(ctx context.Context, ds datasource.JobDataSource, job *datasource.
 // queue triage, bucketing "will never run" vs "just waiting") need to
 // know which check fired, not just the rendered text.
 func DiagnoseWithCheckID(ctx context.Context, ds datasource.JobDataSource, job *datasource.Job, checks []Check) (format.Diagnosis, string, error) {
-	for _, c := range checks {
+	ordered := make([]Check, len(checks))
+	copy(ordered, checks)
+	sort.SliceStable(ordered, func(i, j int) bool { return ordered[i].Priority < ordered[j].Priority })
+
+	for _, c := range ordered {
 		if !c.Applies(job) {
 			continue
 		}
