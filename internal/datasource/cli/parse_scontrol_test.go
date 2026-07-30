@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -89,5 +90,82 @@ func TestParseDependencyOutput_None(t *testing.T) {
 func TestParseDependencyOutput_NotFound(t *testing.T) {
 	if _, err := parseDependencyOutput([]byte(""), "999"); err == nil {
 		t.Fatal("expected an error for a nonexistent job, got nil")
+	}
+}
+
+func TestParseReservationOutput_Inactive(t *testing.T) {
+	out := readFixture(t, "scontrol_reservation_inactive.txt")
+	r, err := parseReservationOutput(out, "maint5")
+	if err != nil {
+		t.Fatalf("parseReservationOutput: %v", err)
+	}
+	if r.Name != "maint5" {
+		t.Errorf("Name = %q, want maint5", r.Name)
+	}
+	if r.State != "INACTIVE" {
+		t.Errorf("State = %q, want INACTIVE", r.State)
+	}
+	wantStart := time.Date(2026, 7, 30, 8, 0, 0, 0, time.UTC)
+	if !r.StartTime.Equal(wantStart) {
+		t.Errorf("StartTime = %v, want %v", r.StartTime, wantStart)
+	}
+	if r.Nodes != "slurmtest" {
+		t.Errorf("Nodes = %q, want slurmtest", r.Nodes)
+	}
+}
+
+func TestParseReservationOutput_Active(t *testing.T) {
+	out := readFixture(t, "scontrol_reservation_active.txt")
+	r, err := parseReservationOutput(out, "maint4")
+	if err != nil {
+		t.Fatalf("parseReservationOutput: %v", err)
+	}
+	if r.State != "ACTIVE" {
+		t.Errorf("State = %q, want ACTIVE", r.State)
+	}
+}
+
+func TestParseReservationOutput_NotFound(t *testing.T) {
+	if _, err := parseReservationOutput([]byte(""), "ghost"); err == nil {
+		t.Fatal("expected an error for a nonexistent reservation, got nil")
+	}
+}
+
+func TestClient_GetReservation_JobHasReservation(t *testing.T) {
+	c := newWithRunner(func(ctx context.Context, name string, args ...string) ([]byte, error) {
+		switch args[1] {
+		case "job":
+			return readFixture(t, "scontrol_job_reservation_pending.txt"), nil
+		case "reservation":
+			return readFixture(t, "scontrol_reservation_inactive.txt"), nil
+		default:
+			t.Fatalf("unexpected scontrol subcommand %q", args[1])
+			return nil, nil
+		}
+	})
+
+	r, err := c.GetReservation(context.Background(), "44")
+	if err != nil {
+		t.Fatalf("GetReservation: %v", err)
+	}
+	if r == nil {
+		t.Fatal("GetReservation = nil, want a reservation")
+	}
+	if r.Name != "maint5" {
+		t.Errorf("Name = %q, want maint5", r.Name)
+	}
+}
+
+func TestClient_GetReservation_JobHasNoReservation(t *testing.T) {
+	c := newWithRunner(func(ctx context.Context, name string, args ...string) ([]byte, error) {
+		return readFixture(t, "scontrol_job_no_reservation.txt"), nil
+	})
+
+	r, err := c.GetReservation(context.Background(), "36")
+	if err != nil {
+		t.Fatalf("GetReservation: %v", err)
+	}
+	if r != nil {
+		t.Errorf("GetReservation = %+v, want nil (job doesn't reference a reservation)", r)
 	}
 }
