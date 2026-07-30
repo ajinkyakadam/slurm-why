@@ -89,6 +89,55 @@ var pendingReasons = map[string]reasonInfo{
 		why: "Your job's --time exceeds this partition's maximum allowed walltime for a single job (its configured MaxTime).",
 		fix: "Run `scontrol show partition <partition>` to see the MaxTime ceiling, and reduce --time to fit within it.",
 	},
+	// The 10 codes below were prioritized from mining Slurm's full
+	// ~218-entry job_state_reason.c table: reservations and down/inactive
+	// partitions specifically, plus the other clearly distinct
+	// (non-QOS/association-ceiling) states most likely to actually show
+	// up. "Reservation" itself is confirmed against a live cluster (a job
+	// with --reservation=<name> before the reservation's start time); the
+	// dedicated reservation check enriches it with the reservation's
+	// actual window when it can, this is the static fallback -- same
+	// relationship as "Dependency" above has with DependencyNeverSatisfied.
+	"Reservation": {
+		why: "This job requested a specific reservation (--reservation=<name>) that hasn't started yet.",
+		fix: "This is normal -- no action needed. It'll become eligible once the reservation's start time arrives. Run `scontrol show reservation <name>` to check the window.",
+	},
+	"ReservationInvalid": {
+		why: "The reservation this job references is no longer valid -- e.g. its nodes were removed from the cluster, or its configuration changed in a way that no longer covers this job's request.",
+		fix: "Run `scontrol show reservation <name>` to check its current state, or resubmit without --reservation if it's no longer needed.",
+	},
+	"ReservationDeleted": {
+		why: "The reservation this job was waiting on was deleted before it could run.",
+		fix: "Resubmit without --reservation, or ask your site admin whether a replacement reservation was created.",
+	},
+	"PartitionDown": {
+		why: "The partition this job was submitted to is currently marked DOWN -- it isn't accepting jobs at all right now, regardless of resource availability.",
+		fix: "Check `sinfo -p <partition>` for its state, or ask your site's HPC support team -- this needs an admin to fix, not a resubmission.",
+	},
+	"PartitionInactive": {
+		why: "The partition this job was submitted to is currently inactive (State=INACTIVE) -- an admin has disabled scheduling to it entirely.",
+		fix: "Ask your site admin when the partition will be reactivated, or submit to a different partition if your work fits one.",
+	},
+	"NodeDown": {
+		why: "A node required for this job is currently marked DOWN in Slurm.",
+		fix: "Check `sinfo -R` for the down node(s) and the reason, or ask your site's HPC support team -- this is a cluster health issue, not something a resubmission fixes.",
+	},
+	"JobHeldAdmin": {
+		why: "An administrator has put this job on hold, independent of any resource or policy issue.",
+		fix: "Ask your site admin why the job was held and whether/when it'll be released.",
+	},
+	"JobHeldUser": {
+		why: "This job is on hold because you (or something running as you) put it there with `scontrol hold`.",
+		fix: "Run `scontrol release <jobid>` to let it become eligible to run again.",
+	},
+	"Licenses": {
+		why: "This job requested a software license (--licenses) that's currently fully checked out by other jobs.",
+		fix: "This is normal -- it'll start once a license token frees up. Run `scontrol show licenses` to see current usage, or reduce how many you're requesting.",
+	},
+	"Cleaning": {
+		why: "A previous job on the node(s) this job needs is still running its epilog (post-job cleanup script) -- the node isn't available until that finishes.",
+		fix: "This is normal and usually resolves within seconds to a couple minutes. If a node stays stuck in this state, ask your site's HPC support team to check its epilog script.",
+	},
 }
 
 func runPendingCheck(ctx context.Context, ds datasource.JobDataSource, job *datasource.Job) (*format.Diagnosis, error) {
@@ -101,14 +150,26 @@ func runPendingCheck(ctx context.Context, ds datasource.JobDataSource, job *data
 	if !ok {
 		return &format.Diagnosis{
 			Title: fmt.Sprintf("Job is waiting to run (reason: %s)", reason.Code),
-			Why:   fmt.Sprintf("Slurm reports the pending reason as %q, which isn't one of the common codes this tool recognizes yet.", reason.Code),
+			Why:   fmt.Sprintf("Slurm reports the pending reason as %q, which isn't one of the common codes this tool recognizes yet.%s", reason.Code, detailSuffix(reason)),
 			Fix:   "Check `man squeue` (search for NODELIST(REASON)) for what this code means, or ask your site's HPC support team.",
 		}, nil
 	}
 
 	return &format.Diagnosis{
 		Title: fmt.Sprintf("Job is waiting to run (reason: %s)", reason.Code),
-		Why:   info.why,
+		Why:   info.why + detailSuffix(reason),
 		Fix:   info.fix,
 	}, nil
+}
+
+// detailSuffix surfaces Slurm's own free-text addition to a reason code
+// (e.g. "Reserved for maintenance" alongside ReqNodeNotAvail), confirmed
+// against a live cluster to occur for reservation-blocked jobs. It's
+// appended verbatim rather than pattern-matched into a bespoke message --
+// safer than guessing which specific reservation or condition it refers to.
+func detailSuffix(reason *datasource.PendingReason) string {
+	if reason.Detail == "" {
+		return ""
+	}
+	return fmt.Sprintf(" Slurm adds: %q.", reason.Detail)
 }
