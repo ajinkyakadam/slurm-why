@@ -1,7 +1,7 @@
 # slurm-why
 
 [![CI](https://github.com/ajinkyakadam/slurm-why/actions/workflows/ci.yml/badge.svg)](https://github.com/ajinkyakadam/slurm-why/actions/workflows/ci.yml)
-[![Coverage](https://img.shields.io/badge/coverage-75.8%25-yellow)](https://github.com/ajinkyakadam/slurm-why/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/badge/coverage-77.3%25-yellow)](https://github.com/ajinkyakadam/slurm-why/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 Plain-English diagnoses for confusing Slurm job states — instead of decoding raw `sacct`/`squeue`/`scontrol` output yourself, run `slurm-why <job-id>` and get a **Diagnosis → Why → Fix**.
