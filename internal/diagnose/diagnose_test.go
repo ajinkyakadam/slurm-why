@@ -67,3 +67,38 @@ func TestDiagnose_FallsBackWhenNoCheckApplies(t *testing.T) {
 }
 
 func alwaysApplies(*datasource.Job) bool { return true }
+
+func TestDiagnoseWithCheckID_ReturnsFiredCheckID(t *testing.T) {
+	job := &datasource.Job{ID: "1", State: "PENDING"}
+	ds := &fakeDataSource{}
+
+	checks := []Check{
+		{ID: "a", Applies: alwaysApplies, Run: func(context.Context, datasource.JobDataSource, *datasource.Job) (*format.Diagnosis, error) {
+			return nil, nil
+		}},
+		{ID: "b", Applies: alwaysApplies, Run: func(context.Context, datasource.JobDataSource, *datasource.Job) (*format.Diagnosis, error) {
+			return &format.Diagnosis{Title: "second"}, nil
+		}},
+	}
+
+	_, checkID, err := DiagnoseWithCheckID(context.Background(), ds, job, checks)
+	if err != nil {
+		t.Fatalf("DiagnoseWithCheckID: %v", err)
+	}
+	if checkID != "b" {
+		t.Errorf("checkID = %q, want %q", checkID, "b")
+	}
+}
+
+func TestDiagnoseWithCheckID_EmptyWhenFallbackFires(t *testing.T) {
+	job := &datasource.Job{ID: "1", State: "COMPLETED"}
+	ds := &fakeDataSource{}
+
+	_, checkID, err := DiagnoseWithCheckID(context.Background(), ds, job, nil)
+	if err != nil {
+		t.Fatalf("DiagnoseWithCheckID: %v", err)
+	}
+	if checkID != "" {
+		t.Errorf("checkID = %q, want empty when no check applied", checkID)
+	}
+}
