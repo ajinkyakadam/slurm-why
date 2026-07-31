@@ -1,0 +1,67 @@
+name: Bug report / unrecognized failure mode
+description: A wrong or missing diagnosis, a crash, or a failure mode slurm-why doesn't recognize yet
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Real day-to-day failures are exactly what grows this catalog -- thanks for taking the time to report one.
+
+        The most useful thing you can include is the **raw output** slurm-why itself reads from, not just what it printed -- that's what actually lets a fix get written and tested.
+
+  - type: input
+    id: slurm-why-version
+    attributes:
+      label: slurm-why version
+      description: Output of `slurm-why version`
+      placeholder: "slurm-why 0.3.0 (commit d26316c, built 2026-07-31T06:06:09Z)"
+    validations:
+      required: true
+
+  - type: input
+    id: slurm-version
+    attributes:
+      label: Slurm version
+      description: Output of `sinfo --version` or `sacct --version`
+      placeholder: "slurm 24.11.7"
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Login-node OS
+      description: e.g. from `cat /etc/os-release`
+      placeholder: "Rocky Linux 9.4"
+    validations:
+      required: false
+
+  - type: textarea
+    id: command-and-output
+    attributes:
+      label: Command run and what slurm-why printed
+      description: The exact `slurm-why <job-id>` (or `--admin`/`admin queue`) invocation and its full output.
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: raw-output
+    attributes:
+      label: Raw sacct/squeue/scontrol output for the job
+      description: |
+        Whichever of these apply to your job -- this is the single most useful thing you can attach:
+          sacct -j <jobid> -o JobID,State,ExitCode,DerivedExitCode,MaxRSS,ReqMem
+          squeue -j <jobid> -o "%i|%T|%R"
+          scontrol show job <jobid>
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected instead
+      description: The diagnosis you think slurm-why should have given, if you have a guess.
+    validations:
+      required: false
