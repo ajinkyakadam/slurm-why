@@ -26,6 +26,20 @@ func TestOOMCheck_Applies(t *testing.T) {
 		{datasource.Job{State: "FAILED", ExitSignal: 125}, true},
 		{datasource.Job{State: "COMPLETED"}, false},
 		{datasource.Job{State: "PENDING"}, false},
+		// Confirmed against a live cluster (Slurm 24.11.7): a genuine
+		// cgroup-enforced OOM kill reported ExitCode=9:0 in sacct -- 9 in
+		// the return-code slot, not the signal slot -- matching none of
+		// the three patterns above. MaxRSS far exceeding ReqMem is the
+		// version-independent fallback signal.
+		{datasource.Job{State: "FAILED", ExitCode: 9, ExitSignal: 0, ReqMemBytes: 100 << 20, MaxRSSBytes: 3400 << 20}, true},
+		// A FAILED job for an unrelated reason (e.g. a bug in the user's
+		// program) shouldn't be misdiagnosed as OOM just because it used
+		// somewhat more memory than requested isn't in play here -- MaxRSS
+		// at or under ReqMem must not trigger the fallback.
+		{datasource.Job{State: "FAILED", ExitCode: 1, ReqMemBytes: 100 << 20, MaxRSSBytes: 50 << 20}, false},
+		// ReqMemBytes unknown (0) must never trigger the fallback, even
+		// with a large MaxRSS -- there's nothing to compare against.
+		{datasource.Job{State: "FAILED", ExitCode: 1, MaxRSSBytes: 3400 << 20}, false},
 	}
 	for _, tt := range tests {
 		if got := oomApplies(&tt.job); got != tt.want {

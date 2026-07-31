@@ -30,8 +30,25 @@ func init() {
 //     testing against a live cluster, where a real cgroup memory-limit
 //     kill showed up as ExitCode=137 (bash-wrapped) or ExitSignal=9
 //     (exec'd directly), not this marker.
+//
+// None of the three patterns above are actually stable across Slurm
+// versions. Multi-version testing (26.05.2, 24.11.7, 23.02.8, 21.08.8-2 --
+// see test/cluster/) found a fourth, undocumented encoding: a genuine
+// cgroup-enforced OOM kill on 24.11.7 reported ExitCode=9:0 in sacct (9 in
+// the *return code* slot, signal 0) -- neither ExitSignal==9 nor
+// ExitCode==137 -- while `scontrol show job` for that same job reported
+// ExitCode=137:0 instead. sacct and scontrol disagreeing about the same
+// job's own exit code, on the same version, rules out ever having a
+// complete enumeration of "the" encoding to match against.
 func oomApplies(j *datasource.Job) bool {
-	return j.State == "OUT_OF_MEMORY" || j.ExitSignal == 9 || j.ExitCode == 137 || j.ExitSignal == 125
+	if j.State == "OUT_OF_MEMORY" || j.ExitSignal == 9 || j.ExitCode == 137 || j.ExitSignal == 125 {
+		return true
+	}
+	// Version-independent fallback: whatever exit code Slurm chose to
+	// report, a FAILED job that used substantially more memory than it
+	// requested is the memory limit having killed it -- this doesn't
+	// depend on Slurm's exit-code encoding at all.
+	return j.State == "FAILED" && j.ReqMemBytes > 0 && j.MaxRSSBytes > j.ReqMemBytes
 }
 
 func runOOMCheck(ctx context.Context, ds datasource.JobDataSource, job *datasource.Job) (*format.Diagnosis, error) {

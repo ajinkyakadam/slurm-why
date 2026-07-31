@@ -6,6 +6,27 @@ A minimal single-node Slurm cluster for manually validating slurm-why's diagnose
 
 Not every site runs the latest Slurm, though — this project's parsing is deliberately built to work across a wide version range (see `PLAN.md`). Worth periodically rebuilding this cluster against an older version too, to confirm nothing's been accidentally narrowed to only-latest-Slurm behavior.
 
+## Testing against other Slurm versions
+
+`SLURM_VERSION`/`SLURM_DOWNLOAD_URL`/`SLURM_SHA256` are all Dockerfile `ARG`s, so a different version can be built without editing anything:
+
+```
+docker build -t cluster-slurm:23.02.8 \
+  --build-arg SLURM_VERSION=23.02.8 \
+  --build-arg SLURM_DOWNLOAD_URL=https://download.schedmd.com/slurm/slurm-23.02.8.tar.bz2 \
+  --build-arg SLURM_SHA256=<sha256sum of that tarball> \
+  .
+```
+
+Only recent releases (roughly 25.05+) have a formal GitHub Release with an attached, API-reported checksum; older versions need `download.schedmd.com/slurm/slurm-<version>.tar.bz2` instead (confirmed byte-identical to the GitHub release asset for versions where both exist) — compute the SHA256 yourself after downloading rather than trusting an unpinned URL.
+
+**Known per-version quirks in *this test harness*** (not slurm-why itself) when pointing it at an older version:
+- **21.08.x**: `cgroup.conf`'s `IgnoreSystemd` key doesn't exist yet on this version — Slurm fails to parse the file at all (`fatal: Could not open/read/parse cgroup.conf`), even though nothing here uses cgroup task containment.
+- **23.02.x**: the `cgroup/v2` plugin tries to create a systemd-scope directory (`.../system.slice/slurmstepd.scope`) that doesn't exist in this no-systemd container, regardless of `IgnoreSystemd=yes`, and slurmd's cgroup init fails.
+- Working around both means running that version with `TaskPlugin=task/affinity` / `ProctrackType=proctrack/linuxproc` instead of the `task/cgroup` setup below — which also means no real cgroup memory enforcement, so `oom.sh` won't produce a genuine kill on those versions specifically. Every other scenario (impossible-request, dependency, exit-code, reservation, pending-reason codes) doesn't depend on cgroup enforcement and validates normally.
+
+**Findings from testing 26.05.2, 24.11.7, 23.02.8, and 21.08.8-2** (2026-07): every diagnosis except OOM detection produced identical, correct results across all four versions — the `PartitionNodeLimit`/`MaxMemPerLimit`/`PartitionTimeLimit`/dependency/exit-code/reservation reason codes are all stable across this range. OOM detection was not: a genuine cgroup-enforced kill on 24.11.7 reported `ExitCode=9:0` in `sacct` (9 in the *return-code* slot) — a fourth encoding distinct from the `ExitCode=137`/`ExitSignal=9`/`ExitSignal=125` patterns already handled, and different even from what `scontrol show job` reported for that same job (`137:0`). Fixed by adding a version-independent fallback (`internal/diagnose/oom.go`): a `FAILED` job whose `MaxRSS` exceeds its requested memory is treated as OOM regardless of the exit-code encoding.
+
 ## Bring it up
 
 ```
