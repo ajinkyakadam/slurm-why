@@ -151,7 +151,10 @@ func runPendingCheck(ctx context.Context, ds datasource.JobDataSource, job *data
 		return &format.Diagnosis{
 			Title: fmt.Sprintf("Job is waiting to run (reason: %s)", reason.Code),
 			Why:   fmt.Sprintf("Slurm reports the pending reason as %q, which isn't one of the common codes this tool recognizes yet.%s", reason.Code, detailSuffix(reason)),
-			Fix:   "Check `man squeue` (search for NODELIST(REASON)) for what this code means, or ask your site's HPC support team.",
+			Fix: fmt.Sprintf(
+				"Check `man squeue` (search for NODELIST(REASON)) for what this code means, or open an issue at %s "+
+					"with the squeue/scontrol output (`squeue -j %s`, `scontrol show job %s`) so this tool can recognize it.",
+				issuesURL, job.ID, job.ID),
 		}, nil
 	}
 

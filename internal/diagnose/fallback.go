@@ -7,6 +7,12 @@ import (
 	"github.com/ajinkyakadam/slurm-why/internal/format"
 )
 
+// issuesURL is where a user should report a failure mode this tool
+// doesn't recognize yet -- surfaced alongside every generic fallback
+// message, not just the README, since that's the moment it's actually
+// useful.
+const issuesURL = "https://github.com/ajinkyakadam/slurm-why/issues"
+
 // fallbackDiagnosis reports a job's state plainly when no registered
 // check found anything more specific to say -- covering, in particular,
 // a job that already finished (successfully, or for a reason this tool
@@ -28,7 +34,12 @@ func fallbackDiagnosis(job *datasource.Job) format.Diagnosis {
 			Why: fmt.Sprintf(
 				"Exit code %d, signal %d. This tool doesn't have a specific diagnosis for this failure yet.",
 				job.ExitCode, job.ExitSignal),
-			Fix: "Check your job's stdout/stderr log for the actual error from your program.",
+			Fix: fmt.Sprintf(
+				"Check your job's stdout/stderr log for the actual error from your program. "+
+					"If you think this failure mode deserves a specific diagnosis, open an issue at %s "+
+					"with the sacct/scontrol output (`sacct -j %s -o JobID,State,ExitCode`, `scontrol show job %s`) -- "+
+					"real failures are exactly what grows this catalog.",
+				issuesURL, job.ID, job.ID),
 		}
 	case "TIMEOUT":
 		return format.Diagnosis{
@@ -52,7 +63,10 @@ func fallbackDiagnosis(job *datasource.Job) format.Diagnosis {
 		return format.Diagnosis{
 			Title: fmt.Sprintf("Job state: %s", job.State),
 			Why:   "This tool doesn't have a specific diagnosis for this state yet.",
-			Fix:   fmt.Sprintf("Run `scontrol show job %s` for full details.", job.ID),
+			Fix: fmt.Sprintf(
+				"Run `scontrol show job %s` for full details. If you think this state deserves a specific "+
+					"diagnosis, open an issue at %s with that output.",
+				job.ID, issuesURL),
 		}
 	}
 }
