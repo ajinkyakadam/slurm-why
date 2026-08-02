@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+message: "If you use slurm-why in your work, please cite it as below."
+title: "slurm-why"
+abstract: >-
+  Plain-English diagnoses for confusing Slurm job states -- OOM kills,
+  pending-reason codes, impossible resource requests -- instead of
+  decoding raw sacct/squeue/scontrol output by hand.
+authors:
+  - family-names: Kadam
+    given-names: Ajinkya
+version: 0.3.0
+date-released: "2026-07-31"
+url: "https://github.com/ajinkyakadam/slurm-why"
+repository-code: "https://github.com/ajinkyakadam/slurm-why"
+license: MIT
+keywords:
+  - hpc
+  - slurm
+  - cli
+  - diagnostics
+  - job-scheduler
