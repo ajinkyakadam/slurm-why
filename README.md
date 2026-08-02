@@ -3,6 +3,7 @@
 [![CI](https://github.com/ajinkyakadam/slurm-why/actions/workflows/ci.yml/badge.svg)](https://github.com/ajinkyakadam/slurm-why/actions/workflows/ci.yml)
 [![Coverage](https://img.shields.io/badge/coverage-73.3%25-yellow)](https://github.com/ajinkyakadam/slurm-why/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Downloads](https://img.shields.io/github/downloads/ajinkyakadam/slurm-why/total)](https://github.com/ajinkyakadam/slurm-why/releases)
 [![DOI](https://zenodo.org/badge/1315577683.svg)](https://doi.org/10.5281/zenodo.21753048)
 
 Plain-English diagnoses for confusing Slurm job states — instead of decoding raw `sacct`/`squeue`/`scontrol` output yourself, run `slurm-why <job-id>` and get a **Diagnosis → Why → Fix**.
