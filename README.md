@@ -3,6 +3,7 @@
 [![CI](https://github.com/ajinkyakadam/slurm-why/actions/workflows/ci.yml/badge.svg)](https://github.com/ajinkyakadam/slurm-why/actions/workflows/ci.yml)
 [![Coverage](https://img.shields.io/badge/coverage-73.3%25-yellow)](https://github.com/ajinkyakadam/slurm-why/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![DOI](https://zenodo.org/badge/1315577683.svg)](https://doi.org/10.5281/zenodo.21753048)
 
 Plain-English diagnoses for confusing Slurm job states — instead of decoding raw `sacct`/`squeue`/`scontrol` output yourself, run `slurm-why <job-id>` and get a **Diagnosis → Why → Fix**.
 
@@ -125,9 +126,12 @@ If you use slurm-why in your work, please consider citing:
   title = {slurm-why: plain-English diagnoses for confusing Slurm job states},
   year = {2026},
   publisher = {GitHub},
-  url = {https://github.com/ajinkyakadam/slurm-why}
+  url = {https://github.com/ajinkyakadam/slurm-why},
+  doi = {10.5281/zenodo.21753048}
 }
 ```
+
+That DOI always resolves to the latest release. If you need to cite the exact version you used for reproducibility, [slurm-why's Zenodo record](https://doi.org/10.5281/zenodo.21753048) lists a separate, permanent DOI for every tagged release.
 
 ## License
 
