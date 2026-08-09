@@ -65,7 +65,7 @@ go build -o slurm-why ./cmd/slurm-why
 
 Today, slurm-why always uses the CLI backend (`sacct`/`squeue`/`scontrol`/`sacctmgr`) — there's nothing to configure, it works out of the box on any login node.
 
-A `slurmrestd` REST backend is planned (see roadmap below): when available, it'll be preferred automatically if a site configures an endpoint and JWT token, falling back to the CLI backend otherwise. Not implemented yet.
+A `slurmrestd` REST backend is planned (see roadmap below). There's no way to auto-discover *where* `slurmrestd` is actually listening — that varies by site (often the login/head node, but sometimes elsewhere to avoid making it a single point of failure), so an admin will need to set slurm-why's own endpoint variable by hand once this backend lands. Falls back to the CLI backend otherwise. Not implemented yet.
 
 ## Usage
 
