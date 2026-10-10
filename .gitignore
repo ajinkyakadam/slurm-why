@@ -33,6 +33,9 @@ PLAN.md
 # goreleaser build output
 dist/
 
+# vendored source tarball from scripts/vendored-source-tarball.sh
+release-src/
+
 # Editor/IDE
 # .idea/
 # .vscode/
