@@ -23,13 +23,16 @@ trap 'rm -rf "${work}"' EXIT
 git archive --format=tar --prefix="${name}/" HEAD | tar -x -C "${work}"
 (cd "${work}/${name}" && go mod vendor)
 
-# Pin timestamps/ownership/order to the commit so rebuilding the same
-# tag yields a byte-identical tarball (and a stable checksum).
+# Pin timestamps/ownership/order/permissions so rebuilding the same tag
+# on any machine yields a byte-identical tarball (and a stable checksum).
+# --mode normalizes away the builder's umask, which otherwise leaks into
+# the group-write bit of every extracted file and directory.
 mtime="$(git log -1 --format=%ct HEAD)"
 mkdir -p "${outdir}"
 tar -C "${work}" \
 	--sort=name --mtime="@${mtime}" \
 	--owner=0 --group=0 --numeric-owner \
+	--mode='u+rwX,go+rX,go-w' \
 	-cf - "${name}" | gzip -n >"${outdir}/${name}.tar.gz"
 
 echo "wrote ${outdir}/${name}.tar.gz"
