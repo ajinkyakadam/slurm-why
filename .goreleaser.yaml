@@ -4,6 +4,10 @@ version: 2
 before:
   hooks:
     - go mod tidy
+    # Offline-buildable source tarball for distro packagers (OpenHPC,
+    # EPEL): the tagged tree plus a generated vendor/. Written outside
+    # dist/ since GoReleaser requires dist/ to be empty at this point.
+    - ./scripts/vendored-source-tarball.sh {{ .Version }} release-src
 
 builds:
   - id: slurm-why
@@ -35,6 +39,8 @@ archives:
 
 checksum:
   name_template: "checksums.txt"
+  extra_files:
+    - glob: ./release-src/slurm-why-{{ .Version }}.tar.gz
 
 # RPM for RHEL-family sysadmin installs (docs/install.md). Only applies
 # to the linux binaries from the builds block above (RPM has no meaning
@@ -67,3 +73,5 @@ release:
   github:
     owner: ajinkyakadam
     name: slurm-why
+  extra_files:
+    - glob: ./release-src/slurm-why-{{ .Version }}.tar.gz
